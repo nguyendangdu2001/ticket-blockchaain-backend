@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  prod:
+    container_name: nestjs_api_prod
+    image: nguyendangdu2001/live168-main:test
+    build:
+      context: .
+      target: production
+      dockerfile: ./Dockerfile
+    command: 'node dist/main.js'
+    ports:
+      - 5000:5000
+    networks:
+      - nesjs-network
+    volumes:
+      # - ./dist:/var/www/html/dist
+      - ./distClient:/var/www/html/distClient
+      - ./.env:/var/www/html/.env
+      # - /var/www/html/node_modules
+    restart: unless-stopped
+  # webserver:
+  #   image: nginx:mainline-alpine
+  #   container_name: webserver
+  #   restart: unless-stopped
+  #   ports:
+  #     - '80:80'
+  #   volumes:
+  #     - web-root:/var/www/html
+  #     - ./nginx-conf-prod:/etc/nginx/conf.d
+  #     - certbot-etc:/etc/letsencrypt
+  #     - certbot-var:/var/lib/letsencrypt
+  #   depends_on:
+  #     - prod
+  #   networks:
+  #     - nesjs-network
+  # prod:
+  #   container_name: nestjs_api_prod
+  #   image: nestjs-api-prod:1.0.0
+  #   build:
+  #     context: .
+  #     target: production
+  #     dockerfile: ./Dockerfile
+  #   command: npm run start:prod
+  #   ports:
+  #     - 5389:5389
+  #     - 9229:9229
+  #   networks:
+  #     - nesjs-network
+  #   volumes:
+  #     - .:/usr/src/app
+  #     - /usr/src/app/node_modules
+  #   restart: unless-stopped
+  # certbot:
+  #   image: certbot/certbot
+  #   container_name: certbot
+  #   volumes:
+  #     - certbot-etc:/etc/letsencrypt
+  #     - certbot-var:/var/lib/letsencrypt
+  #     - web-root:/var/www/html
+  #   depends_on:
+  #     - webserver
+  #   command: certonly --webroot --webroot-path=/var/www/html --email nguyendangdu2001@gmail.com --agree-tos --no-eff-email --staging -d demo-app.tech
+networks:
+  nesjs-network:
+# volumes:
+#   certbot-etc:
+#   certbot-var:
+#   web-root:
+# driver: local
+# driver_opts:
+#   type: none
+#   device: /home/www/node_project/views/
+#   o: bind
