@@ -52,29 +52,29 @@ export class AuthService {
       throw new UnauthorizedException();
     }
   }
-  async validateNormalUser(email: string, password: string) {
-    const user = await this.userService.findByEmail(email);
-    if (!user) throw new BadRequestException();
-    const passwordCheck = await compare(password, user.password);
-    if (!passwordCheck)
-      throw new NotAcceptableException('Username or Password not correct');
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password: excluded, ...returnUser } = user.toObject();
-    return returnUser;
-  }
-  async register(req: Request, registerInput: RegisterInput) {
-    const checkExist = await this.userService.findOne({
-      email: registerInput?.email,
-    });
-    if (checkExist) throw new BadRequestException('Email exist');
-    const user = await this.userService.create({
-      ...registerInput,
-      password: await hash(registerInput.password, 10),
-    });
-    const signed = this.jwt.sign({ userId: user?._id });
-    req.session.eventBuzzjwt = signed;
-    return { ...user?.toObject(), token: signed, id: user._id };
-  }
+  // async validateNormalUser(email: string, password: string) {
+  //   const user = await this.userService.findByEmail(email);
+  //   if (!user) throw new BadRequestException();
+  //   const passwordCheck = await compare(password, user.password);
+  //   if (!passwordCheck)
+  //     throw new NotAcceptableException('Username or Password not correct');
+  //   // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  //   const { password: excluded, ...returnUser } = user.toObject();
+  //   return returnUser;
+  // }
+  // async register(req: Request, registerInput: RegisterInput) {
+  //   const checkExist = await this.userService.findOne({
+  //     email: registerInput?.email,
+  //   });
+  //   if (checkExist) throw new BadRequestException('Email exist');
+  //   const user = await this.userService.create({
+  //     ...registerInput,
+  //     password: await hash(registerInput.password, 10),
+  //   });
+  //   const signed = this.jwt.sign({ userId: user?._id });
+  //   req.session.eventBuzzjwt = signed;
+  //   return { ...user?.toObject(), token: signed, id: user._id };
+  // }
   async validateWsUser(token: string) {
     const data = this.jwt.verify<{ userId: string; projectId?: string }>(token);
     if (!data) throw new WsException('UnAuthorized');

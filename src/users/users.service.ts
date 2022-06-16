@@ -14,6 +14,7 @@ import { CreateUserInput } from './dto/create-user.input';
 import { UpdateUserInput } from './dto/update-user.input';
 import { User, UserDocument } from './entities/user.entity';
 import { QUERY_VIEW_USER } from 'src/common/query-select/user';
+import { ID } from 'src/common/types/ID';
 @Injectable()
 export class UsersService {
   constructor(
@@ -77,7 +78,7 @@ export class UsersService {
     return user;
   }
 
-  async update(id: string, updateUserInput: UpdateUserInput) {
+  async update(id: ID, updateUserInput: UpdateUserInput) {
     console.log(updateUserInput);
     // return this.userModel.findByIdAndUpdate(id, updateUserInput, {
     //   projection: { password: -1 },
@@ -85,8 +86,8 @@ export class UsersService {
     console.log(id);
 
     const existingUser = await this.userModel
-      .findOneAndUpdate(
-        { _id: id },
+      .findByIdAndUpdate(
+        id,
         { $set: updateUserInput },
         {
           new: true,
@@ -155,19 +156,19 @@ export class UsersService {
       throw new UnauthorizedException();
     }
   }
-  async changeStatus(id: string, changeStatus: ChangeStatusInput) {
-    const arrStatus = ['active', 'away', 'offline'];
-    const user = await this.findOneById(id);
-    if (user) {
-      if (arrStatus.includes(changeStatus.status)) {
-        user.statusChat = changeStatus.status;
-        user.save();
-      } else {
-        throw new NotFoundException('Not Found Status');
-      }
-    }
-    return user;
-  }
+  // async changeStatus(id: string, changeStatus: ChangeStatusInput) {
+  //   const arrStatus = ['active', 'away', 'offline'];
+  //   const user = await this.findOneById(id);
+  //   if (user) {
+  //     if (arrStatus.includes(changeStatus.status)) {
+  //       user.statusChat = changeStatus.status;
+  //       user.save();
+  //     } else {
+  //       throw new NotFoundException('Not Found Status');
+  //     }
+  //   }
+  //   return user;
+  // }
   async removeAll(query: any) {
     return await this.userModel.deleteMany(query);
   }

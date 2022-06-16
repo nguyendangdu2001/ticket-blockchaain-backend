@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { Public, User } from 'src/common/decorators';
-import { User as UserEntity } from './entities/user.entity';
+import { User as UserEntity, UserDocument } from './entities/user.entity';
 // import * as Mail from 'nodemailer/lib/mailer';
 // import { createTransport } from 'nodemailer';
 // import EmailService from 'src/utils/email/email.service';
@@ -43,7 +43,7 @@ export class UsersController {
   }
 
   @Get('/profile')
-  async getGlobalyProfile(@User() user: UserEntity) {
+  async getGlobalyProfile(@User() user: UserDocument) {
     if (user) {
       return await this.usersService.findOneById(user?._id);
     }
@@ -69,19 +69,19 @@ export class UsersController {
   }
 
   @Put('/profile')
-  update(@User() user: UserEntity, @Body() updateUserInput: UpdateUserInput) {
+  update(@User() user: UserDocument, @Body() updateUserInput: UpdateUserInput) {
     return this.usersService.update(user?._id, updateUserInput);
   }
 
-  @Public()
-  @Put('change-status/:id')
-  changestatus(
-    @Param('id') id: string,
-    @Body() changeStatus: ChangeStatusInput,
-  ) {
-    console.log(changeStatus);
-    return this.usersService.changeStatus(id, changeStatus);
-  }
+  // @Public()
+  // @Put('change-status/:id')
+  // changestatus(
+  //   @Param('id') id: string,
+  //   @Body() changeStatus: ChangeStatusInput,
+  // ) {
+  //   console.log(changeStatus);
+  //   return this.usersService.changeStatus(id, changeStatus);
+  // }
 
   // @Delete(':id')
   // remove(@Param('id') id: string) {

@@ -8,6 +8,13 @@ import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { TicketTypeModule } from './ticket-type/ticket-type.module';
+import { TicketModule } from './ticket/ticket.module';
+import { OnChainListenerModule } from './on-chain-listener/on-chain-listener.module';
+import { EventsModule } from './events/events.module';
+import { APP_GUARD } from '@nestjs/core';
+import { AuthenticatedGuard } from './common/guards/authenticated';
+import { MarketModule } from './market/market.module';
 
 @Module({
   imports: [
@@ -54,8 +61,13 @@ import { AuthModule } from './auth/auth.module';
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'distClient'),
     }),
+    TicketTypeModule,
+    TicketModule,
+    OnChainListenerModule,
+    EventsModule,
+    MarketModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, { provide: APP_GUARD, useClass: AuthenticatedGuard }],
 })
 export class AppModule {}
