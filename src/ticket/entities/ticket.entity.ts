@@ -22,6 +22,8 @@ export class Ticket {
   eventOnChainId: string;
   @Prop()
   ownerAddress: string;
+  @Prop({ default: () => Math.floor(Math.random() * 1000000)?.toString() })
+  nonce?: string;
   @Prop({ default: false })
   scanned?: boolean;
   event?: Event;

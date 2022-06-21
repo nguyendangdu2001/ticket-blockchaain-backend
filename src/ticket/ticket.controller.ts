@@ -30,17 +30,19 @@ export class TicketController {
   }
   @Post('scan')
   async scan(
-    @Body() data: { ticketId: string; eventId: string },
+    @Body() data: { ticketId: string; eventId: string; nonce: string },
     @User() user: UserEntity,
   ) {
     const ticket = await this.ticketService.findOneById(data?.ticketId);
     if (ticket.eventId?.toString() !== data?.eventId)
       throw new BadRequestException('Ticket not for this event');
-    const owner = await this.onChainService.getOwnerOfTicketNFT(
-      ticket?.onChainId,
-    );
-    if (user?.publicAddress !== owner)
+    if (ticket?.nonce !== data?.nonce)
       throw new BadRequestException('Not owner');
+    // const owner = await this.onChainService.getOwnerOfTicketNFT(
+    //   ticket?.onChainId,
+    // );
+    // if (user?.publicAddress !== owner)
+    //   throw new BadRequestException('Not owner');
     if (ticket?.scanned) throw new BadRequestException('Ticket scanned');
     const newTicket = await (
       await this.ticketService.update(ticket?._id?.toString(), {

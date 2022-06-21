@@ -1,19 +1,27 @@
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
+import { AbstractService } from 'src/common/service/AbtrastService';
 import { EventsService } from 'src/events/events.service';
+import { MarketService } from 'src/market/market.service';
 import { TicketTypeService } from 'src/ticket-type/ticket-type.service';
 import { TicketService } from 'src/ticket/ticket.service';
 import Web3 from 'web3';
 import { contractData } from './abi/NFTTicketMarketplace';
+import { BlockCheck, BlockCheckDocument } from './entity/BlockCheck';
 
 @Injectable()
-export class OnChainListenerService {
+export class OnChainListenerService extends AbstractService<BlockCheck> {
   private web3: Web3;
   constructor(
+    @InjectModel(BlockCheck.name)
+    private blockCheckModel: Model<BlockCheckDocument>,
     private eventServices: EventsService,
     private ticketTypeService: TicketTypeService,
     private ticketService: TicketService,
+    private marketService: MarketService,
   ) {
+    super(blockCheckModel);
     this.web3 = new Web3('http://localhost:8545');
     const web3 = new Web3(
       new Web3.providers.WebsocketProvider('ws://localhost:8545', {
@@ -39,6 +47,10 @@ export class OnChainListenerService {
         endTime: new Date(Number(values?.endTime)),
         onChainId: values?.onChainId,
         finishTransaction: true,
+      });
+      await blockCheckModel.create({
+        eventName: 'EventCreated',
+        blocknumber: event?.blockNumber,
       });
     });
     contract.events?.EventUpdated().on('data', async function (event) {
@@ -72,6 +84,10 @@ export class OnChainListenerService {
         price: values?.price,
         eventId: new Types.ObjectId(values?.eventId),
       });
+      await blockCheckModel.create({
+        eventName: 'TicketTypeCreated',
+        blocknumber: event?.blockNumber,
+      });
     });
     // contract.events?.TicketTypeUpdated().on('data', async function (event) {
     //   console.log(event); // same results as the optional callback above
@@ -93,6 +109,11 @@ export class OnChainListenerService {
     contract.events?.TicketSold().on('data', async function (event) {
       console.log(event); // same results as the optional callback above
       // const event = eventServices.findOne({onChainId})
+      const blockCheck = await blockCheckModel.findOne({
+        blocknumber: event?.blockNumber,
+        eventName: 'TicketSold',
+      });
+      if (blockCheck) return;
       const values = event?.returnValues;
       const ticketType = await ticketTypeService.findOneById(
         values?.ticketTypeId,
@@ -109,6 +130,10 @@ export class OnChainListenerService {
         ticketTypeService.update(values?.ticketTypeId, {
           currentLimit: Number(values?.limitCurrent),
         });
+      await blockCheckModel.create({
+        eventName: 'TicketSold',
+        blocknumber: event?.blockNumber,
+      });
     });
     contract.events?.Transfer().on('data', async function (event) {
       console.log(event); // same results as the optional callback above
@@ -116,17 +141,56 @@ export class OnChainListenerService {
       const values = event?.returnValues;
       await ticketService.updateOne(
         { onChainId: values?.tokenId },
-        { ownerAddress: values?.to?.toLowerCase() },
+        {
+          ownerAddress: values?.to?.toLowerCase(),
+          nonce: Math.floor(Math.random() * 1000000)?.toString(),
+        },
       );
+      await blockCheckModel.create({
+        eventName: 'Transfer',
+        blocknumber: event?.blockNumber,
+      });
     });
     contract.events?.MarketItemCreated().on('data', async function (event) {
       console.log(event); // same results as the optional callback above
       // const event = eventServices.findOne({onChainId})
+      const blockCheck = await blockCheckModel.findOne({
+        blocknumber: event?.blockNumber,
+        eventName: 'TicketSold',
+      });
+      if (blockCheck) return;
       const values = event?.returnValues;
-      await ticketService.updateOne(
-        { onChainId: values?.tokenId },
-        { ownerAddress: values?.to?.toLowerCase() },
+      const ticket = await ticketService.findOne({
+        onChainId: values?.tokenId,
+      });
+      const market = await marketService.create({
+        price: values?.price,
+        seller: values?.seller?.toLowerCase(),
+        sold: false,
+        tokenId: values?.tokenId,
+        onChainId: values?.onChainId,
+        eventId: ticket?.eventId,
+        ticketTypeId: ticket?.ticketTypeId,
+      });
+      await blockCheckModel.create({
+        eventName: 'MarketItemCreated',
+        blocknumber: event?.blockNumber,
+      });
+    });
+    contract.events?.MarketItemSold().on('data', async function (event) {
+      console.log(event); // same results as the optional callback above
+      // const event = eventServices.findOne({onChainId})
+      const values = event?.returnValues;
+      const market2 = await marketService.updateOne(
+        { onChainId: values?.onChainId },
+        {
+          sold: true,
+        },
       );
+      await blockCheckModel.create({
+        eventName: 'MarketItemSold',
+        blocknumber: event?.blockNumber,
+      });
     });
   }
   async getOwnerOfTicketNFT(tokenId: string) {
@@ -137,5 +201,14 @@ export class OnChainListenerService {
       .ownerOf(Number(tokenId))
       .call();
     return data;
+  }
+  async getEventByBlockNumber(eventName: string, blockNumber: number) {
+    return await new this.web3.eth.Contract(
+      contractData.abi as any,
+      contractData.address,
+    ).getPastEvents(eventName, {
+      fromBlock: blockNumber,
+      toBlock: blockNumber,
+    });
   }
 }
